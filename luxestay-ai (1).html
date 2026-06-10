@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LuxeStay AI — Your Personal Concierge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:     #080b12;
+      --bg-card:     #0e1420;
+      --bg-panel:    #111827;
+      --bg-input:    #161f30;
+      --border:      rgba(201,168,76,0.18);
+      --border-soft: rgba(255,255,255,0.06);
+      --gold:        #c9a84c;
+      --gold-light:  #e2c87a;
+      --gold-dim:    rgba(201,168,76,0.12);
+      --cream:       #f5f0e8;
+      --text-pri:    #e8e0d0;
+      --text-muted:  #7a8499;
+      --text-soft:   #a0aab8;
+      --bubble-ai:   rgba(201,168,76,0.07);
+      --bubble-user: rgba(20,40,80,0.9);
+      --font-d:      'Cormorant Garamond', Georgia, serif;
+      --font-b:      'DM Sans', system-ui, sans-serif;
+    }
+
+    html, body { height: 100%; overflow: hidden; background: var(--bg-deep); color: var(--text-pri); font-family: var(--font-b); font-weight: 300; -webkit-font-smoothing: antialiased; }
+
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    @keyframes blink  { 0%,80%,100%{opacity:0;transform:scale(.7)} 40%{opacity:1;transform:scale(1)} }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes pulse  { 0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,0)} 50%{box-shadow:0 0 0 5px rgba(74,222,128,.12)} }
+
+    #app {
+      display: flex; height: 100vh; width: 100vw;
+      overflow: hidden; position: relative; z-index: 1;
+    }
+    #app::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      background-size: 200px; pointer-events: none; z-index: 0;
+    }
+    #bg-ambient {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: radial-gradient(ellipse at 15% 80%, rgba(201,168,76,.04) 0%, transparent 50%),
+                  radial-gradient(ellipse at 85% 15%, rgba(30,58,95,.08) 0%, transparent 50%);
+    }
+
+    /* ─── SIDEBAR ─── */
+    #sidebar {
+      width: 260px; min-width: 260px; background: var(--bg-card);
+      border-right: 1px solid var(--border-soft);
+      display: flex; flex-direction: column; overflow: hidden;
+      position: relative; z-index: 2;
+    }
+    #hotel-hero {
+      background: linear-gradient(160deg,#1a2540 0%,#0e1420 60%,#080b12 100%);
+      padding: 26px 18px 18px; border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden; flex-shrink: 0;
+    }
+    #hotel-hero::before {
+      content: ''; position: absolute; top: -40px; right: -40px;
+      width: 130px; height: 130px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(201,168,76,.13) 0%, transparent 70%);
+    }
+    .badge-luxury { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+    .dot-gold { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+    .badge-luxury span { font-size: 9px; letter-spacing: .2em; color: var(--gold); text-transform: uppercase; font-weight: 500; }
+    #hotel-name-display { font-family: var(--font-d); font-size: 21px; font-weight: 400; color: var(--cream); line-height: 1.2; margin-bottom: 6px; position: relative; }
+    .hotel-location { display: flex; align-items: center; gap: 5px; margin-bottom: 12px; }
+    .hotel-location svg { opacity: .6; }
+    .hotel-location span { font-size: 11px; color: var(--text-muted); }
+    .stars { display: flex; gap: 2px; align-items: center; }
+    .stars span { font-size: 10px; color: var(--text-muted); margin-left: 6px; }
+    #sidebar-scroll { flex: 1; overflow-y: auto; padding: 14px 12px; }
+    .section-label { font-size: 9px; letter-spacing: .18em; color: var(--text-muted); text-transform: uppercase; font-weight: 500; margin-bottom: 8px; margin-top: 4px; }
+    .quick-btn {
+      width: 100%; text-align: left; background: transparent;
+      border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px 11px;
+      color: var(--text-soft); font-size: 12px; font-family: var(--font-b);
+      cursor: pointer; margin-bottom: 5px; transition: all .18s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .quick-btn:hover { border-color: var(--gold); color: var(--gold-light); background: var(--gold-dim); }
+    .quick-btn .qb-emoji { font-size: 13px; }
+    .room-card {
+      width: 100%; background: var(--bg-panel); border: 1px solid var(--border-soft);
+      border-radius: 10px; padding: 10px 11px; margin-bottom: 5px;
+      cursor: pointer; text-align: left; transition: all .18s ease;
+    }
+    .room-card:hover { border-color: rgba(201,168,76,.35); background: rgba(201,168,76,.04); }
+    .room-card-inner { display: flex; justify-content: space-between; align-items: flex-start; }
+    .room-emoji { font-size: 15px; margin-bottom: 2px; }
+    .room-name  { font-size: 11px; color: var(--text-pri); font-weight: 500; }
+    .room-sub   { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    .room-price { font-family: var(--font-d); font-size: 14px; color: var(--gold); font-weight: 500; }
+    .room-per   { font-size: 9px; color: var(--text-muted); }
+    .amenity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 4px; }
+    .amenity-chip {
+      background: var(--bg-panel); border: 1px solid var(--border-soft);
+      border-radius: 7px; padding: 7px 9px; display: flex; align-items: center;
+      gap: 6px; font-size: 10px; color: var(--text-soft);
+    }
+    #sidebar-footer { padding: 11px 14px; border-top: 1px solid var(--border-soft); display: flex; align-items: center; gap: 8px; }
+    .dot-online { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,.6); animation: pulse 2s infinite; flex-shrink: 0; }
+    #sidebar-footer span { font-size: 10px; color: var(--text-muted); }
+
+    /* ─── CHAT ─── */
+    #chat { flex: 1; display: flex; flex-direction: column; background: var(--bg-deep); overflow: hidden; position: relative; z-index: 2; }
+    #chat-header {
+      padding: 14px 20px; border-bottom: 1px solid var(--border-soft);
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(8,11,18,.7); backdrop-filter: blur(12px); z-index: 5; flex-shrink: 0;
+    }
+    #chat-header-left h2 { font-family: var(--font-d); font-size: 17px; font-weight: 400; color: var(--cream); }
+    #chat-header-left p  { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    .status-badge { padding: 4px 10px; background: rgba(74,222,128,.08); border: 1px solid rgba(74,222,128,.22); border-radius: 20px; font-size: 10px; color: #4ade80; display: flex; align-items: center; gap: 5px; }
+    .status-dot { width: 5px; height: 5px; border-radius: 50%; background: #4ade80; }
+    #messages { flex: 1; overflow-y: auto; padding: 10px 0 6px; }
+    .msg-row { display: flex; padding: 5px 16px; animation: fadeUp .3s ease forwards; }
+    .msg-row.user { flex-direction: row-reverse; }
+    .msg-row.ai   { flex-direction: row; }
+    .avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg,rgba(201,168,76,.22),rgba(201,168,76,.07));
+      border: 1px solid var(--border); display: flex; align-items: center;
+      justify-content: center; font-size: 12px; flex-shrink: 0; margin-top: 18px;
+    }
+    .msg-row.user .avatar { background: rgba(20,40,80,.6); border-color: rgba(30,58,95,.7); }
+    .msg-content { max-width: 76%; }
+    .msg-row.user .msg-content { margin-right: 8px; }
+    .msg-row.ai  .msg-content { margin-left: 8px; }
+    .msg-label { font-size: 9px; color: var(--gold); letter-spacing: .1em; margin-bottom: 3px; font-weight: 500; }
+    .msg-bubble { padding: 10px 14px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+    .msg-row.ai .msg-bubble   { background: var(--bubble-ai); border: 1px solid var(--border); color: var(--text-pri); border-radius: 4px 12px 12px 12px; }
+    .msg-row.user .msg-bubble { background: var(--bubble-user); border: 1px solid rgba(30,58,95,.8); color: var(--cream); border-radius: 12px 4px 12px 12px; }
+    .msg-time { font-size: 9px; color: var(--text-muted); margin-top: 3px; }
+    .msg-row.user .msg-time { text-align: right; }
+
+    #typing-row { display: none; flex-direction: row; padding: 5px 16px; align-items: center; }
+    #typing-row.visible { display: flex; }
+    #typing-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg,rgba(201,168,76,.22),rgba(201,168,76,.07)); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; margin-right: 8px; flex-shrink: 0; }
+    #typing-bubble { background: var(--bubble-ai); border: 1px solid var(--border); border-radius: 4px 12px 12px 12px; padding: 10px 14px; display: flex; gap: 5px; align-items: center; }
+    .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+    .typing-dot:nth-child(1) { animation: blink 1.2s ease-in-out 0s infinite; }
+    .typing-dot:nth-child(2) { animation: blink 1.2s ease-in-out .2s infinite; }
+    .typing-dot:nth-child(3) { animation: blink 1.2s ease-in-out .4s infinite; }
+
+    #chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 16px 8px; animation: fadeIn .4s ease; }
+    .chip { padding: 5px 12px; background: transparent; border: 1px solid var(--border); border-radius: 20px; color: var(--text-soft); font-size: 11px; font-family: var(--font-b); cursor: pointer; transition: all .18s ease; }
+    .chip:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+
+    #error-banner { display: none; margin: 6px 16px; padding: 10px 14px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); border-radius: 10px; font-size: 12px; color: #f87171; }
+    #error-banner.visible { display: block; }
+
+    #input-area { padding: 12px 16px; border-top: 1px solid var(--border-soft); background: rgba(8,11,18,.85); backdrop-filter: blur(12px); flex-shrink: 0; }
+    #input-wrap { display: flex; align-items: flex-end; gap: 10px; background: var(--bg-input); border: 1px solid var(--border-soft); border-radius: 14px; padding: 10px 14px; transition: border-color .2s ease; }
+    #input-wrap:focus-within { border-color: rgba(201,168,76,.38); }
+    #msg-input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-pri); font-family: var(--font-b); font-size: 13px; resize: none; line-height: 1.5; max-height: 100px; overflow-y: auto; }
+    #msg-input::placeholder { color: var(--text-muted); }
+    #send-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-panel); border: 1px solid var(--border-soft); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s ease; flex-shrink: 0; }
+    #send-btn.active { background: linear-gradient(135deg,var(--gold),var(--gold-light)); border-color: var(--gold); }
+    #input-footer { font-size: 9px; color: var(--text-muted); text-align: center; margin-top: 6px; letter-spacing: .04em; }
+
+    /* ─── CONTEXT PANEL ─── */
+    #context-panel { width: 240px; min-width: 240px; background: var(--bg-card); border-left: 1px solid var(--border-soft); padding: 18px 13px; overflow-y: auto; z-index: 2; }
+    .ctx-label { font-size: 9px; letter-spacing: .18em; color: var(--text-muted); text-transform: uppercase; font-weight: 500; margin-bottom: 13px; }
+    #ctx-hero { height: 130px; border-radius: 11px; background: linear-gradient(135deg,#1a2540 0%,#0e2340 50%,#1a3a50 100%); margin-bottom: 14px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); position: relative; overflow: hidden; }
+    #ctx-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 50%,rgba(201,168,76,.15) 0%,transparent 70%); }
+    #ctx-hero-inner { text-align: center; position: relative; z-index: 1; }
+    #ctx-hero-inner .big-emoji { font-size: 34px; margin-bottom: 4px; }
+    #ctx-hotel-name { font-family: var(--font-d); font-size: 16px; color: var(--cream); letter-spacing: .04em; }
+    .ctx-stars { display: flex; justify-content: center; gap: 2px; margin-top: 4px; }
+    .highlight-card { display: flex; align-items: center; gap: 11px; padding: 9px 11px; background: var(--bg-panel); border: 1px solid var(--border-soft); border-radius: 9px; margin-bottom: 5px; }
+    .highlight-card .h-emoji { font-size: 17px; flex-shrink: 0; }
+    .h-title { font-size: 11px; color: var(--text-pri); font-weight: 500; }
+    .h-sub   { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    #aria-tip { margin-top: 14px; padding: 11px 12px; background: var(--gold-dim); border: 1px solid var(--border); border-radius: 10px; text-align: center; }
+    #aria-tip .tip-header { font-size: 11px; color: var(--gold); margin-bottom: 3px; }
+    #aria-tip p { font-size: 11px; color: var(--text-soft); line-height: 1.55; }
+
+    #booking-card { display: none; background: linear-gradient(135deg,rgba(201,168,76,.1),rgba(14,20,32,.95)); border: 1px solid rgba(201,168,76,.4); border-radius: 13px; padding: 18px; animation: fadeUp .4s ease forwards; }
+    #booking-card.visible { display: block; }
+    #booking-header { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+    .booking-confirmed-txt { font-size: 12px; color: #4ade80; font-weight: 500; }
+    .booking-ref { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    .booking-divider { border: none; border-top: 1px solid var(--border-soft); margin-bottom: 12px; }
+    .booking-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+    .booking-row-left { display: flex; align-items: center; gap: 7px; }
+    .booking-key { font-size: 11px; color: var(--text-muted); }
+    .booking-val { font-size: 11px; color: var(--text-pri); }
+    .booking-val.gold { color: var(--gold); font-family: var(--font-d); font-size: 13px; font-weight: 600; }
+    #booking-btn { width: 100%; margin-top: 14px; padding: 10px; background: linear-gradient(90deg,var(--gold),var(--gold-light)); border: none; border-radius: 8px; color: #080b12; font-size: 12px; font-weight: 600; font-family: var(--font-b); cursor: pointer; }
+    #booking-btn:hover { opacity: .9; }
+
+    @media (max-width: 1024px) { #context-panel { display: none; } }
+    @media (max-width: 768px)  { #sidebar { display: none; } #context-panel { display: none; } }
+  </style>
+</head>
+<body>
+<div id="bg-ambient"></div>
+<div id="app">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside id="sidebar">
+    <div id="hotel-hero">
+      <div class="badge-luxury"><div class="dot-gold"></div><span>Luxury Collection</span></div>
+      <div id="hotel-name-display">LuxeStay Grand</div>
+      <div class="hotel-location">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span id="hotel-loc-display">Dubai, UAE</span>
+      </div>
+      <div class="stars">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="#c9a84c" stroke="#c9a84c"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="#c9a84c" stroke="#c9a84c"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="#c9a84c" stroke="#c9a84c"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="#c9a84c" stroke="#c9a84c"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="#c9a84c" stroke="#c9a84c"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>Forbes Five-Star</span>
+      </div>
+    </div>
+
+    <div id="sidebar-scroll">
+      <div class="section-label" style="margin-top:10px">Quick Requests</div>
+      <button class="quick-btn" onclick="quickAction('Book a Room')"><span class="qb-emoji">🛎️</span> Book a Room</button>
+      <button class="quick-btn" onclick="quickAction('Restaurant Reservations')"><span class="qb-emoji">🍽️</span> Restaurant Reservations</button>
+      <button class="quick-btn" onclick="quickAction('Airport Transfer')"><span class="qb-emoji">🚁</span> Airport Transfer</button>
+      <button class="quick-btn" onclick="quickAction('Spa and Wellness')"><span class="qb-emoji">💆</span> Spa &amp; Wellness</button>
+      <button class="quick-btn" onclick="quickAction('Local Experiences')"><span class="qb-emoji">🗺️</span> Local Experiences</button>
+      <button class="quick-btn" onclick="quickAction('Hotel Policies')"><span class="qb-emoji">❓</span> Hotel Policies</button>
+
+      <div class="section-label" style="margin-top:16px">Accommodations</div>
+      <button class="room-card" onclick="quickAction('Tell me about the Deluxe Room')">
+        <div class="room-card-inner"><div><div class="room-emoji">🛏️</div><div class="room-name">Deluxe Room</div><div class="room-sub">1 King · 420 sqft</div></div><div style="text-align:right"><div class="room-price">$299</div><div class="room-per">/night</div></div></div>
+      </button>
+      <button class="room-card" onclick="quickAction('Tell me about the Junior Suite')">
+        <div class="room-card-inner"><div><div class="room-emoji">🌅</div><div class="room-name">Junior Suite</div><div class="room-sub">1 King · 680 sqft</div></div><div style="text-align:right"><div class="room-price">$499</div><div class="room-per">/night</div></div></div>
+      </button>
+      <button class="room-card" onclick="quickAction('Tell me about the Grand Suite')">
+        <div class="room-card-inner"><div><div class="room-emoji">✨</div><div class="room-name">Grand Suite</div><div class="room-sub">2 King · 1100 sqft</div></div><div style="text-align:right"><div class="room-price">$899</div><div class="room-per">/night</div></div></div>
+      </button>
+      <button class="room-card" onclick="quickAction('Tell me about the Royal Penthouse')">
+        <div class="room-card-inner"><div><div class="room-emoji">👑</div><div class="room-name">Royal Penthouse</div><div class="room-sub">3 King · 2800 sqft</div></div><div style="text-align:right"><div class="room-price">$2499</div><div class="room-per">/night</div></div></div>
+      </button>
+
+      <div class="section-label" style="margin-top:16px">Amenities</div>
+      <div class="amenity-grid">
+        <div class="amenity-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2"><path d="M2 12h20M2 12c0 5.523 4.477 10 10 10S22 17.523 22 12M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10"/></svg>Infinity Pool</div>
+        <div class="amenity-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>Luxury Spa</div>
+        <div class="amenity-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>Free Wi-Fi</div>
+        <div class="amenity-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Valet Parking</div>
+      </div>
+    </div>
+
+    <div id="sidebar-footer">
+      <div class="dot-online"></div>
+      <span>Aria is online · 24/7 Concierge</span>
+    </div>
+  </aside>
+
+  <!-- ═══ CHAT ═══ -->
+  <main id="chat">
+    <div id="chat-header">
+      <div id="chat-header-left">
+        <h2>Aria</h2>
+        <p>Personal Concierge · <span id="header-hotel-name">LuxeStay Grand</span></p>
+      </div>
+      <div class="status-badge"><div class="status-dot"></div>Online</div>
+    </div>
+
+    <div id="messages"></div>
+
+    <div id="typing-row">
+      <div id="typing-avatar">✦</div>
+      <div id="typing-bubble">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+
+    <div id="chips"></div>
+    <div id="error-banner"></div>
+
+    <div id="input-area">
+      <div id="input-wrap">
+        <textarea id="msg-input" placeholder="Ask Aria anything…" rows="1"></textarea>
+        <button id="send-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7a8499" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="send-icon"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+      <div id="input-footer">Powered by Groq · LLaMA 3.3 70B · Queries processed securely</div>
+    </div>
+  </main>
+
+  <!-- ═══ CONTEXT PANEL ═══ -->
+  <aside id="context-panel">
+    <div class="ctx-label">Property Info</div>
+    <div id="ctx-welcome">
+      <div id="ctx-hero">
+        <div id="ctx-hero-inner">
+          <div class="big-emoji">🏨</div>
+          <div id="ctx-hotel-name">LuxeStay Grand</div>
+          <div class="ctx-stars">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="#c9a84c" stroke="#c9a84c"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="#c9a84c" stroke="#c9a84c"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="#c9a84c" stroke="#c9a84c"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="#c9a84c" stroke="#c9a84c"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="#c9a84c" stroke="#c9a84c"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="highlight-card"><span class="h-emoji">🏆</span><div><div class="h-title">Forbes Five-Star</div><div class="h-sub">Rated 8 consecutive years</div></div></div>
+      <div class="highlight-card"><span class="h-emoji">🌊</span><div><div class="h-title">Private Beach</div><div class="h-sub">400m pristine shoreline</div></div></div>
+      <div class="highlight-card"><span class="h-emoji">🍾</span><div><div class="h-title">World-Class Dining</div><div class="h-sub">3 signature restaurants</div></div></div>
+      <div class="highlight-card"><span class="h-emoji">💎</span><div><div class="h-title">Butler Service</div><div class="h-sub">Available 24 hours a day</div></div></div>
+      <div id="aria-tip">
+        <div class="tip-header">✦ Aria's Tip</div>
+        <p>Ask about our exclusive honeymoon package — complimentary room upgrade included.</p>
+      </div>
+    </div>
+
+    <div id="booking-card">
+      <div id="booking-header">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div><div class="booking-confirmed-txt">Booking Confirmed</div><div class="booking-ref" id="b-ref">Ref: —</div></div>
+      </div>
+      <hr class="booking-divider"/>
+      <div class="booking-row"><div class="booking-row-left"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M16 2v4M8 2v4M2 10h20"/></svg><span class="booking-key">Room</span></div><span class="booking-val" id="b-room">—</span></div>
+      <div class="booking-row"><div class="booking-row-left"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M16 2v4M8 2v4M2 10h20"/></svg><span class="booking-key">Check-in</span></div><span class="booking-val" id="b-checkin">—</span></div>
+      <div class="booking-row"><div class="booking-row-left"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M16 2v4M8 2v4M2 10h20"/></svg><span class="booking-key">Check-out</span></div><span class="booking-val" id="b-checkout">—</span></div>
+      <div class="booking-row"><div class="booking-row-left"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="booking-key">Guests</span></div><span class="booking-val" id="b-guests">—</span></div>
+      <div class="booking-row" style="border-bottom:none"><div class="booking-row-left"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span class="booking-key">Total</span></div><span class="booking-val gold" id="b-total">—</span></div>
+      <button id="booking-btn">Download Confirmation</button>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  ★  CONFIGURE YOUR KEY AND HOTEL DETAILS HERE  ★
+// ══════════════════════════════════════════════════
+const GROQ_API_KEY   = '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';   // ← paste your Groq key
+const HOTEL_NAME     = 'LuxeStay Grand';              // ← your hotel name
+const HOTEL_LOCATION = 'Dubai, UAE';                  // ← your hotel city
+// ══════════════════════════════════════════════════
+
+const state = { messages: [], isTyping: false };
+
+function buildSystemPrompt() {
+  return `You are Aria, the AI concierge for ${HOTEL_NAME}, a world-class luxury hotel in ${HOTEL_LOCATION}.
+
+Your personality: Warm, graceful, knowledgeable, and discreetly professional — like the finest hotel concierge who anticipates every need before it is spoken.
+
+Your capabilities:
+- Room bookings: Deluxe Room $299/night, Junior Suite $499/night, Grand Suite $899/night, Royal Penthouse $2,499/night
+- Amenities: rooftop infinity pool, spa and wellness center, 3 signature restaurants, private beach access, 24/7 butler service, helipad transfers
+- Check-in 3:00 PM / Check-out 12:00 PM, early and late requests handled case by case
+- Local recommendations: dining, attractions, shopping, cultural experiences
+- Special arrangements: airport transfers, honeymoon packages, business events, dietary needs, anniversary surprises
+- Cancellation: Free up to 48 hours before arrival. After that, 1 night charge applies
+- Pets: small pets under 10kg welcome with $50/night fee
+- Parking: complimentary valet for all guests
+- Wi-Fi: complimentary high-speed throughout
+
+When a guest shows interest in booking, naturally collect: 1) Check-in date 2) Check-out date 3) Number of guests 4) Room preference. Once you have all four, output a booking confirmation on its own line exactly as:
+BOOKING_CONFIRMED: {"reference":"LX-${Math.floor(10000+Math.random()*90000)}","room":"Junior Suite","checkIn":"2025-08-10","checkOut":"2025-08-13","guests":2,"totalPrice":"$1,497","roomType":"Junior Suite"}
+
+Keep responses concise (2-4 sentences). Use warm elegant language. Occasionally open with "Certainly,", "With pleasure,", "Allow me to".
+
+At the END of every response add on its own line:
+SUGGESTIONS: ["suggestion 1", "suggestion 2", "suggestion 3"]`;
+}
+
+async function callGroq(messages) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
+    body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 600, temperature: 0.7, messages: [{ role: 'system', content: buildSystemPrompt() }, ...messages] }),
+  });
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `API Error ${res.status}`); }
+  return (await res.json()).choices[0].message.content;
+}
+
+function parseSuggestions(t) { const m=t.match(/SUGGESTIONS:\s*(\[[\s\S]*?\])/i); if(!m)return[]; try{return JSON.parse(m[1]);}catch{return[];} }
+function parseBooking(t)     { const m=t.match(/BOOKING_CONFIRMED:\s*(\{[\s\S]*?\})/i); if(!m)return null; try{return JSON.parse(m[1]);}catch{return null;} }
+function cleanText(t)        { return t.replace(/SUGGESTIONS:\s*\[[\s\S]*?\]/gi,'').replace(/BOOKING_CONFIRMED:\s*\{[\s\S]*?\}/gi,'').trim(); }
+function getTime()           { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+function scrollBottom()      { const m=document.getElementById('messages'); m.scrollTop=m.scrollHeight; }
+
+function renderMessage(role, content) {
+  const container = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = role === 'ai' ? '✦' : '✶';
+  const mc = document.createElement('div');
+  mc.className = 'msg-content';
+  if (role === 'ai') { const lbl=document.createElement('div'); lbl.className='msg-label'; lbl.textContent='ARIA · CONCIERGE'; mc.appendChild(lbl); }
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = content;
+  mc.appendChild(bubble);
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = getTime();
+  mc.appendChild(time);
+  row.appendChild(avatar);
+  row.appendChild(mc);
+  container.appendChild(row);
+  scrollBottom();
+}
+
+function setTyping(show) {
+  state.isTyping = show;
+  document.getElementById('typing-row').classList.toggle('visible', show);
+  if (show) scrollBottom();
+}
+
+function renderChips(suggestions) {
+  const el = document.getElementById('chips');
+  el.innerHTML = '';
+  suggestions.forEach(s => {
+    const c = document.createElement('button');
+    c.className = 'chip'; c.textContent = s;
+    c.onclick = () => sendMessage(s);
+    el.appendChild(c);
+  });
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = '⚠ ' + msg; el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 6000);
+}
+
+function showBooking(booking) {
+  document.getElementById('ctx-welcome').style.display = 'none';
+  document.querySelector('#context-panel .ctx-label').textContent = 'Your Booking';
+  document.getElementById('booking-card').classList.add('visible');
+  document.getElementById('b-ref').textContent     = 'Ref: ' + (booking.reference || '—');
+  document.getElementById('b-room').textContent    = booking.room || booking.roomType || '—';
+  document.getElementById('b-checkin').textContent  = booking.checkIn || '—';
+  document.getElementById('b-checkout').textContent = booking.checkOut || '—';
+  document.getElementById('b-guests').textContent   = (booking.guests||'—') + ' guest' + (booking.guests>1?'s':'');
+  document.getElementById('b-total').textContent    = booking.totalPrice || '—';
+}
+
+async function sendMessage(text) {
+  const input = document.getElementById('msg-input');
+  const content = (text || input.value).trim();
+  if (!content || state.isTyping) return;
+  input.value = ''; input.style.height = 'auto';
+  setSendBtn(false);
+  document.getElementById('chips').innerHTML = '';
+  document.getElementById('error-banner').classList.remove('visible');
+  state.messages.push({ role: 'user', content });
+  renderMessage('user', content);
+  setTyping(true);
+  try {
+    const raw         = await callGroq(state.messages);
+    const suggestions = parseSuggestions(raw);
+    const booking     = parseBooking(raw);
+    const cleaned     = cleanText(raw);
+    state.messages.push({ role: 'assistant', content: cleaned });
+    setTyping(false);
+    renderMessage('ai', cleaned);
+    renderChips(suggestions);
+    if (booking) showBooking(booking);
+  } catch(err) {
+    setTyping(false);
+    state.messages.pop();
+    showError(err.message);
+  }
+}
+
+function quickAction(text) { sendMessage(text); }
+
+function setSendBtn(active) {
+  const btn  = document.getElementById('send-btn');
+  const icon = document.getElementById('send-icon');
+  if (active) { btn.classList.add('active'); icon.setAttribute('stroke','#080b12'); }
+  else        { btn.classList.remove('active'); icon.setAttribute('stroke','#7a8499'); }
+}
+
+const msgInput = document.getElementById('msg-input');
+msgInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+  setSendBtn(!!this.value.trim() && !state.isTyping);
+});
+msgInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+document.getElementById('send-btn').addEventListener('click', () => sendMessage());
+
+// ── INIT ──
+document.getElementById('hotel-name-display').textContent = HOTEL_NAME;
+document.getElementById('hotel-loc-display').textContent  = HOTEL_LOCATION;
+document.getElementById('header-hotel-name').textContent  = HOTEL_NAME;
+document.getElementById('ctx-hotel-name').textContent     = HOTEL_NAME;
+
+const greeting = `Good evening. I'm Aria, your personal concierge at ${HOTEL_NAME}. Whether you're planning a stay, seeking local recommendations, or arranging something extraordinary — I'm here to make every detail perfect.\n\nHow may I assist you today?`;
+state.messages.push({ role: 'assistant', content: greeting });
+renderMessage('ai', greeting);
+renderChips(['Book a room', 'Tell me about the spa', 'Local dining recommendations']);
+</script>
+</body>
+</html>
